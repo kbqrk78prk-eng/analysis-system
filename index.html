@@ -7,7 +7,7 @@
     <link rel="apple-touch-icon" href="https://pic.616pic.com/ys_bnew_img/00/50/28/1APb1naGw7.jpg">
     <style>
         body { font-family: sans-serif; background: #000; color: #fff; text-align: center; margin: 0; padding: 10px; }
-        #checker { background: #330000; color: #ff0000; padding: 5px; font-size: 14px; border-radius: 5px; margin-bottom: 10px; font-weight: bold; transition: 0.3s; }
+        #checker { background: #330000; color: #ff0000; padding: 5px; font-size: 14px; border-radius: 5px; margin-bottom: 10px; font-weight: bold; }
         .box { background: #1a1a1a; padding: 12px; border-radius: 10px; border: 1px solid #333; margin-bottom: 8px; }
         .row { display: flex; gap: 8px; margin-bottom: 8px; }
         button { flex: 1; padding: 25px 0; font-size: 20px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; }
@@ -16,6 +16,7 @@
         .btn-g { background: #34c759; color: #fff; }
         .btn-gray { background: #444; color: #fff; border: 1px solid #666; }
         #msg { color: #ffd700; font-size: 15px; margin-bottom: 8px; font-weight: bold; min-height: 1.2em; }
+        .current-p { color: #00ff00; font-size: 16px; margin-bottom: 10px; background: #002200; padding: 5px; border-radius: 5px; border: 1px solid #004400; }
         .stats { display: flex; justify-content: space-around; background: #222; padding: 15px; border-radius: 10px; border: 1px solid #444; }
         .val-pos { color: #FFF9C4; font-size: 24px; font-weight: bold; }
         .val-neg { color: #007aff; font-size: 24px; font-weight: bold; }
@@ -23,17 +24,20 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
         th { border-bottom: 2px solid #444; padding: 8px 0; color: #888; font-weight: normal; }
         td { border-bottom: 1px solid #333; padding: 12px 0; }
-        .btn-clear { background: #333; color: #888; padding: 8px; border-radius: 8px; margin-top: 15px; width: 100%; border: 1px solid #444; font-size: 12px; }
         .warn-active { background: #ff0000 !important; color: #fff !important; animation: blink 0.8s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
-<body onload="initApp()">
+<body onload="checkSystem()">
 
     <div id="checker">⚠️ 系統載入中</div>
-    <div id="msg">🔴 第一步：請點擊「上一局結果」</div>
+    
+    <div id="startPoint" class="current-p">📍 請設定初始起點</div>
+    
+    <div id="msg">🔴 第一步：請點擊上一局結果</div>
 
     <div class="box">
+        <div style="font-size:12px; color:#888; text-align:left; margin-bottom:5px;">● 開牌結果 (點擊後結算)</div>
         <div class="row">
             <button class="btn-r" onclick="handleRes('莊')">莊</button>
             <button class="btn-b" onclick="handleRes('閒')">閒</button>
@@ -42,7 +46,7 @@
     </div>
 
     <div class="box">
-        <div style="font-size:12px; color:#888; text-align:left; margin-bottom:5px;">● 步驟 1：路色設定 (順序不限)</div>
+        <div style="font-size:12px; color:#888; text-align:left; margin-bottom:5px;">● 步驟：先選路色</div>
         <div class="row">
             <button class="btn-gray" onclick="handleClr('S', '紅')">小：紅</button>
             <button class="btn-gray" onclick="handleClr('S', '藍')">小：藍</button>
@@ -74,28 +78,11 @@
         <tbody id="list"></tbody>
     </table>
 
-    <button class="btn-clear" onclick="clearData()">⚠️ 清除所有紀錄</button>
-
 <script>
     var lastP = "", sC = "", bC = "", count = 0, pS = 0, nS = 0, rS = 0;
     var pWins = 0, nWins = 0, totalValid = 0;
     var pLossStreak = 0, nLossStreak = 0;
     var pWinZ = 0, pWinX = 0, nWinZ = 0, nWinX = 0;
-    var currentRoundRes = ""; 
-
-    function initApp() {
-        var saved = localStorage.getItem('ana_data');
-        if (saved) {
-            var d = JSON.parse(saved);
-            lastP = d.lastP; count = d.count; pS = d.pS; nS = d.nS; rS = d.rS;
-            pWins = d.pWins; nWins = d.nWins; totalValid = d.totalValid;
-            pLossStreak = d.pLossStreak; nLossStreak = d.nLossStreak;
-            pWinZ = d.pWinZ; pWinX = d.pWinX; nWinZ = d.nWinZ; nWinX = d.nWinX;
-            document.getElementById('list').innerHTML = d.listHTML;
-            updateUI();
-        }
-        checkSystem();
-    }
 
     function checkSystem() {
         var c = document.getElementById('checker');
@@ -103,60 +90,51 @@
         c.innerText = "✅ 系統運作正常"; c.classList.remove("warn-active");
     }
 
-    function saveToStorage() {
-        var data = {
-            lastP: lastP, count: count, pS: pS, nS: nS, rS: rS,
-            pWins: pWins, nWins: nWins, totalValid: totalValid,
-            pLossStreak: pLossStreak, nLossStreak: nLossStreak,
-            pWinZ: pWinZ, pWinX: pWinX, nWinZ: nWinZ, nWinX: nWinX,
-            listHTML: document.getElementById('list').innerHTML
-        };
-        localStorage.setItem('ana_data', JSON.stringify(data));
-    }
-
-    function clearData() {
-        if (confirm("確定要清除所有紀錄嗎？")) {
-            localStorage.removeItem('ana_data');
-            location.reload();
-        }
-    }
-
     function triggerVibrate() { if ("vibrate" in navigator) { navigator.vibrate([200, 100, 200]); } }
 
+    function updateStartPointDisplay() {
+        var sp = document.getElementById('startPoint');
+        if (lastP) {
+            sp.innerText = "📍 目前起點 (上一局結果): " + lastP;
+        } else {
+            sp.innerText = "📍 請設定初始起點";
+        }
+    }
+
     function handleClr(type, val) {
-        if (!lastP) { alert("請先設定起點！"); return; }
+        if (!lastP) { alert("請先設定起點結果！"); return; }
         if (type === 'S') sC = val; 
         if (type === 'B') bC = val;
-        
-        if (sC && bC && currentRoundRes) {
-            finalizeRound();
-        } else {
-            document.getElementById('msg').innerText = "已選 小路:" + (sC||"-") + " | 大眼:" + (bC||"-") + (currentRoundRes ? " | 當前結果: " + currentRoundRes : "");
-        }
+        document.getElementById('msg').innerText = "已選 小路:" + (sC||"-") + " | 大眼:" + (bC||"-") + " (待開牌結果)";
     }
 
     function handleRes(res) {
+        // 第一次進網頁，設定初始起點
         if (lastP === "") {
             lastP = res; 
-            document.getElementById('msg').innerText = "✅ 起點已設【" + res + "】"; 
-            saveToStorage();
+            updateStartPointDisplay();
+            document.getElementById('msg').innerText = "✅ 起點已設為【" + res + "】，請開始選路色"; 
             return;
         }
-        currentRoundRes = res;
-        if (sC && bC && currentRoundRes) {
-            finalizeRound();
-        } else {
-            document.getElementById('msg').innerText = "📍 目前結果為【" + res + "】，請設定顏色";
+
+        // 如果顏色還沒選
+        if (!sC || !bC) {
+            if (res === '和') { // 和局特殊處理：不論有沒有選顏色都直接記一筆
+                count++;
+                add(count, "--", "和", "和", "0/0");
+                document.getElementById('msg').innerText = "✅ 已紀錄和局，起點維持【" + lastP + "】";
+                return;
+            }
+            alert("請先輸入小路與大眼路顏色！");
+            return;
         }
+
+        // 正式結算
+        finalizeRound(res);
     }
 
-    function finalizeRound() {
-        var res = currentRoundRes;
-        if (res === '和') { 
-            count++; add(count, "--", "和", "和", "0/0"); 
-            resetRound(); saveToStorage(); return; 
-        }
-
+    function finalizeRound(res) {
+        // 預測邏輯：根據上一局 (lastP) 與當前顏色判斷
         var adv = (bC === '藍') ? lastP : (lastP === '莊' ? '閒' : '莊');
         var anti = (adv === '莊' ? '閒' : '莊');
         var pWin = (adv === res);
@@ -166,4 +144,51 @@
         if(nWin) { nWins++; nLossStreak = 0; if(res === '莊') nWinZ++; else nWinX++; } else { nLossStreak++; }
         totalValid++;
 
-        var pG = pWin ? (res ===
+        var pG = pWin ? (res === '莊' ? 475 : 500) : -500;
+        var nG = nWin ? (res === '莊' ? 475 : 500) : -500;
+        pS += (pG + 5); nS += (nG + 5); rS += 5;
+
+        // UI 更新
+        document.getElementById('vPos').innerText = Math.round(pS);
+        document.getElementById('vNeg').innerText = Math.round(nS);
+        document.getElementById('vReb').innerText = rS;
+        document.getElementById('vTotal').innerText = totalValid;
+        document.getElementById('pZ').innerText = pWinZ;
+        document.getElementById('pX').innerText = pWinX;
+        document.getElementById('nZ').innerText = nWinZ;
+        document.getElementById('nX').innerText = nWinX;
+        
+        if(totalValid > 0) {
+            document.getElementById('pRate').innerText = ((pWins / totalValid) * 100).toFixed(1) + "%";
+            document.getElementById('nRate').innerText = ((nWins / totalValid) * 100).toFixed(1) + "%";
+        }
+
+        // 連敗提醒
+        var c = document.getElementById('checker');
+        if (pLossStreak >= 4 || nLossStreak >= 4) {
+            c.innerText = "⚠️ " + (pLossStreak >= 4 ? "正下" : "反下") + " " + Math.max(pLossStreak, nLossStreak) + " 連敗提醒！";
+            c.className = "warn-active"; triggerVibrate();
+        } else {
+            checkSystem();
+        }
+
+        count++;
+        add(count, sC + "|" + bC, adv, res, Math.round(pG) + "/" + Math.round(nG));
+        
+        // 【核心邏輯】將當局結果自動變成下一局的起點
+        lastP = res; 
+        updateStartPointDisplay();
+        
+        // 重置顏色等待下一局
+        sC = ""; bC = "";
+        document.getElementById('msg').innerText = "✅ 已結算。下一局起點已自動設為【" + lastP + "】";
+    }
+
+    function add(idx, clr, adv, res, score) {
+        var l = document.getElementById('list');
+        var row = "<tr><td>"+idx+"</td><td>"+clr+"</td><td>"+adv+"</td><td>"+res+"</td><td>"+score+"</td></tr>";
+        l.innerHTML = row + l.innerHTML;
+    }
+</script>
+</body>
+</html>
