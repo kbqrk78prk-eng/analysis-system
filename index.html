@@ -109,7 +109,6 @@
     }
 
     function handleRes(res) {
-        // 第一次進網頁，設定初始起點
         if (lastP === "") {
             lastP = res; 
             updateStartPointDisplay();
@@ -117,36 +116,52 @@
             return;
         }
 
-        // 如果顏色還沒選
-        if (!sC || !bC) {
-            if (res === '和') { // 和局特殊處理：不論有沒有選顏色都直接記一筆
-                count++;
-                add(count, "--", "和", "和", "0/0");
-                document.getElementById('msg').innerText = "✅ 已紀錄和局，起點維持【" + lastP + "】";
-                return;
+        // 和局處理
+        if (res === '和') {
+            count++;
+            // 即使開和，我們也要算出那一局「原本預測什麼」
+            var advOriginal = "";
+            if (sC && bC) {
+                advOriginal = (bC === '藍') ? lastP : (lastP === '莊' ? '閒' : '莊');
+            } else {
+                advOriginal = "未選色";
             }
+            
+            add(count, (sC || "-") + "|" + (bC || "-"), advOriginal, "和", "0 / 0");
+            document.getElementById('msg').innerText = "✅ 已紀錄和局，起點維持【" + lastP + "】";
+            
+            // 重置選色，準備下一局
+            sC = ""; bC = "";
+            return;
+        }
+
+        if (!sC || !bC) {
             alert("請先輸入小路與大眼路顏色！");
             return;
         }
 
-        // 正式結算
         finalizeRound(res);
     }
 
     function finalizeRound(res) {
-        // 預測邏輯：根據上一局 (lastP) 與當前顏色判斷
+        // 預測邏輯
         var adv = (bC === '藍') ? lastP : (lastP === '莊' ? '閒' : '莊');
         var anti = (adv === '莊' ? '閒' : '莊');
+        
         var pWin = (adv === res);
         var nWin = (anti === res);
         
         if(pWin) { pWins++; pLossStreak = 0; if(res === '莊') pWinZ++; else pWinX++; } else { pLossStreak++; }
         if(nWin) { nWins++; nLossStreak = 0; if(res === '莊') nWinZ++; else nWinX++; } else { nLossStreak++; }
+        
         totalValid++;
 
         var pG = pWin ? (res === '莊' ? 475 : 500) : -500;
         var nG = nWin ? (res === '莊' ? 475 : 500) : -500;
-        pS += (pG + 5); nS += (nG + 5); rS += 5;
+        
+        pS += (pG + 5); 
+        nS += (nG + 5); 
+        rS += 5;
 
         // UI 更新
         document.getElementById('vPos').innerText = Math.round(pS);
@@ -163,7 +178,6 @@
             document.getElementById('nRate').innerText = ((nWins / totalValid) * 100).toFixed(1) + "%";
         }
 
-        // 連敗提醒
         var c = document.getElementById('checker');
         if (pLossStreak >= 4 || nLossStreak >= 4) {
             c.innerText = "⚠️ " + (pLossStreak >= 4 ? "正下" : "反下") + " " + Math.max(pLossStreak, nLossStreak) + " 連敗提醒！";
@@ -173,13 +187,11 @@
         }
 
         count++;
-        add(count, sC + "|" + bC, adv, res, Math.round(pG) + "/" + Math.round(nG));
+        add(count, sC + "|" + bC, adv, res, Math.round(pG) + " / " + Math.round(nG));
         
-        // 【核心邏輯】將當局結果自動變成下一局的起點
         lastP = res; 
         updateStartPointDisplay();
         
-        // 重置顏色等待下一局
         sC = ""; bC = "";
         document.getElementById('msg').innerText = "✅ 已結算。下一局起點已自動設為【" + lastP + "】";
     }
